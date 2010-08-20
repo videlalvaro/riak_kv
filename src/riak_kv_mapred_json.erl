@@ -230,6 +230,47 @@ parse_step(<<"javascript">>, StepDef) ->
         _ ->
             {ok, {jsanon, Source}}
     end;
+parse_step(<<"clojure">>, StepDef) ->
+    Source = proplists:get_value(<<"source">>, StepDef),
+    Name = proplists:get_value(<<"name">>, StepDef),
+    Bucket = proplists:get_value(<<"bucket">>, StepDef),
+    Key = proplists:get_value(<<"key">>, StepDef),
+    case Source of
+        undefined ->
+            case Name of
+                undefined ->
+                    case Bucket of
+                        undefined ->
+                            {error, ["No function specified in Javascript phase:\n"
+                                     "   ",mochijson2:encode({struct,StepDef}),
+                                     "\n\nFunctions may be specified by:\n"
+                                     "   - a \"source\" field, with source for"
+                                     " a Javascript function\n"
+                                     "   - a \"name\" field, naming a predefined"
+                                     " Javascript function\n"
+                                     "   - \"bucket\" and \"key\" fields,"
+                                     " specifying a Riak object containing"
+                                     " Javascript function source\n"]};
+                        _ ->
+                            case Key of
+                                undefined ->
+                                    {error, ["Javascript phase was missing a"
+                                             " \"key\" field to match the \"bucket\""
+                                             " field, pointing to the function"
+                                             " to evaluate in:"
+                                             "   ",mochijson2:encode(
+                                                    {struct,StepDef}),
+                                             "\n"]};
+                                _ ->
+                                    {ok, {cljanon, {Bucket, Key}}}
+                            end
+                    end;
+                _ ->
+                    {ok, {cljfun, Name}}
+            end;
+        _ ->
+            {ok, {cljanon, Source}}
+    end;
 parse_step(<<"erlang">>, StepDef) ->
     case bin_to_atom(proplists:get_value(<<"module">>, StepDef)) of
         {ok, Module} ->

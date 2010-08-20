@@ -62,6 +62,13 @@ init([]) ->
     RiakJsSup = {riak_kv_js_sup,
                  {riak_kv_js_sup, start_link, []},
                  permanent, infinity, supervisor, [riak_kv_js_sup]},
+    RiakCljMgr = {riak_kv_clj_manager,
+                  {riak_kv_clj_manager, start_link,
+                  [app_helper:get_env(riak_kv, js_vm_count, 0)]},
+                permanent, 30000, worker, [riak_kv_clj_manager]},
+    RiakCljSup = {riak_kv_clj_sup,
+                  {riak_kv_clj_sup, start_link, []},
+                  permanent, infinity, supervisor, [riak_kv_clj_sup]},
     % Figure out which processes we should run...
     IsPbConfigured = (app_helper:get_env(riak_kv, pb_ip) /= undefined)
         andalso (app_helper:get_env(riak_kv, pb_port) /= undefined),
@@ -74,7 +81,9 @@ init([]) ->
         ?IF(IsPbConfigured, RiakPb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,
-        RiakJsMgr
+        RiakJsMgr,
+        RiakCljSup,
+        RiakCljMgr
     ]),
 
     % Run the proesses...

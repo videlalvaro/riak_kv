@@ -434,6 +434,22 @@ do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData,
             end;
         CV ->
             {ok, CV}
+    end;
+do_map({clojure, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, Sender) ->
+    CacheKey = build_key(FunTerm, Arg, KeyData),
+    CacheVal = cache_fetch(BKey, CacheKey, Cache),
+    case CacheVal of
+        not_cached ->
+            case Mod:get(ModState, BKey) of
+                {ok, Binary} ->
+                    V = binary_to_term(Binary),
+                    riak_kv_clj_manager:dispatch({Sender, QTerm, V, KeyData, BKey}),
+                    map_executing;
+                {error, notfound} ->
+                    {error, notfound}
+            end;
+        CV ->
+            {ok, CV}
     end.
 
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->

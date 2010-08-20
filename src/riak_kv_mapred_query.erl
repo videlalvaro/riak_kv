@@ -100,6 +100,17 @@ check_query_syntax([QTerm={QTermType, QueryFun, Misc, Acc}|Rest], Accum) when is
                                end;
                            {jsfun, JS} when is_binary(JS) ->
                                {phase_mod(T), phase_behavior(T, QueryFun, Acc), [{javascript, QTerm}]};
+                           {cljanon, JS} when is_binary(JS) ->
+                               {phase_mod(T), phase_behavior(T, QueryFun, Acc), [{clojure, QTerm}]};
+                           {cljanon, {Bucket, Key}} when is_binary(Bucket),
+                                                        is_binary(Key) ->
+                               case fetch_js(Bucket, Key) of
+                                   {ok, JS} ->
+                                       {phase_mod(T), phase_behavior(T, QueryFun, Acc), [{clojure,
+                                                                                          {T, {jsanon, JS}, Misc, Acc}}]};
+                                   _ ->
+                                       {bad_qterm, QTerm}
+                               end;
                            _ ->
                                {bad_qterm, QTerm}
                        end
